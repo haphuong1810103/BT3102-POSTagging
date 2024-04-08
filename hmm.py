@@ -15,6 +15,10 @@ Viterbi prediction accuracy:   1049/1378 = 0.7612481857764877
 Viterbi2 prediction accuracy:  1103/1378 = 0.8004354136429608
 '''
 
+'''
+Question 2
+'''
+
 #Question 2.1a
 
 def MLE_predict(training_file):
@@ -399,7 +403,7 @@ Question 4
 - 6th improvement:  Identifies tokens that are mostly numeric. If more than half of the characters in the token are digits, returns "100", otherwise returns False.
 '''
 
-trans_probs('twitter_train.txt', 'twitter_tags.txt', 'trans_probs2.txt')
+# (a)
 
 def URL_identifier(token):
         if token.startswith('http'):
@@ -445,6 +449,43 @@ def mostly_numeric(token):
         return "100"
     else:
         return False
+
+
+def non_word_shortener(token):
+    #if token does not contain any letters or numbers
+    if not any(char.isalpha() or char.isdigit() for char in token):    
+        cleaned_token = ''
+        for i in range(len(token)):
+            if i == 0 or token[i] != token[i-1]:
+                cleaned_token += token[i]
+        return cleaned_token
+    else:
+        return False
+
+def tweet_preprocessor(tweet):
+    tweet_sentences = [[]]
+    with open(tweet, 'r') as file:
+        for line in file:
+            token = line.strip()
+            if len(token) == 0:
+                tweet_sentences.append([])
+                continue
+            if non_word_shortener(token):
+                token = non_word_shortener(token)
+            if URL_identifier(token):
+                token = "URL"
+            if USER_identifier(token):
+                token = '@USER'
+            if hashtag_identifier(token):
+                token = '#'
+            if mostly_numeric(token):
+                token = mostly_numeric(token)
+            tweet_sentences[-1].append(token)
+    return tweet_sentences
+
+# (b) 
+
+trans_probs('twitter_train.txt', 'twitter_tags.txt', 'trans_probs2.txt')
 
 def output_probs2(in_train_filename, in_tags_filename):
     hidden_states = []
@@ -493,38 +534,6 @@ def output_probs2(in_train_filename, in_tags_filename):
     
 output_probs2('twitter_train.txt', 'twitter_tags.txt')
 
-
-def non_word_shortener(token):
-    #if token does not contain any letters or numbers
-    if not any(char.isalpha() or char.isdigit() for char in token):    
-        cleaned_token = ''
-        for i in range(len(token)):
-            if i == 0 or token[i] != token[i-1]:
-                cleaned_token += token[i]
-        return cleaned_token
-    else:
-        return False
-
-def tweet_preprocessor(tweet):
-    tweet_sentences = [[]]
-    with open(tweet, 'r') as file:
-        for line in file:
-            token = line.strip()
-            if len(token) == 0:
-                tweet_sentences.append([])
-                continue
-            if non_word_shortener(token):
-                token = non_word_shortener(token)
-            if URL_identifier(token):
-                token = "URL"
-            if USER_identifier(token):
-                token = '@USER'
-            if hashtag_identifier(token):
-                token = '#'
-            if mostly_numeric(token):
-                token = mostly_numeric(token)
-            tweet_sentences[-1].append(token)
-    return tweet_sentences
 
 def viterbi_predict2(in_tags_filename, in_trans_probs_filename, in_output_probs_filename, in_test_filename,
                      out_predictions_filename):
