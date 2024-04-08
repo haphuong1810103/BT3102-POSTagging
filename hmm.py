@@ -1,4 +1,19 @@
-# Implement the four functions below
+'''
+Question 1: 
+Group Bayesbies
+Members:
+- Nguyen Viet Ha - A0255723A
+- Cao Thi Ha Phuong - A0266282Y
+- Le Ba Vu - A0255837R
+'''
+
+'''
+Output: 
+Naive prediction accuracy:     1004/1378 = 0.7285921625544267
+Naive prediction2 accuracy:    1016/1378 = 0.737300435413643
+Viterbi prediction accuracy:   1047/1378 = 0.7597968069666183
+Viterbi2 prediction accuracy:  1103/1378 = 0.8004354136429608
+'''
 
 #Question 2.1a
 
@@ -559,9 +574,14 @@ def viterbi_predict2(in_tags_filename, in_trans_probs_filename, in_output_probs_
             emission_probs[tag_num] = {}
             for token in sentence:
                 if token in output_probs:
-                    emission_probs[tag_num][token] = output_probs[token][tag_num]
+                    if tag_num in output_probs[token]:
+                        emission_probs[tag_num][token] = output_probs[token][tag_num]
+                    else:
+                        # for unseen emission, assign a very small value
+                        emission_probs[tag_num][token] = 1e-10
                 else:
-                    emission_probs[tag_num][token] = 0.01
+                    # for unseen token, assign a small value
+                    emission_probs[tag_num][token] = 0.001
 
         for i in range(0, len(hidden_states)):
             viterbi_table[0].append(initial_probs[i] * emission_probs[i][sentence[0]])
@@ -604,7 +624,7 @@ def viterbi_predict2(in_tags_filename, in_trans_probs_filename, in_output_probs_
     with open(out_predictions_filename, 'w') as output:
         output.writelines(predictions)
 
-
+# (c) Viterbi2 prediction accuracy:  1103/1378 = 0.8004354136429608
 
 
 def evaluate(in_prediction_filename, in_answer_filename):
@@ -632,7 +652,7 @@ def run():
     This sequence of code corresponds to the sequence of questions in your project handout.
     '''
 
-    ddir = '/Users/caophuong/Documents/Y2S2/BT3102/Project' #your working dir
+    ddir = '/Users/caophuong/Documents/Prj/BT3102-' #your working dir
 
     in_train_filename = f'{ddir}/twitter_train.txt'
 
