@@ -245,13 +245,11 @@ def trans_probs(in_train_filename, in_tags_filename):
             if tag not in tag_tag_counts[prev_tag]:
                 tag_tag_counts[prev_tag][tag] = 0
 
-    with open("trans_probs.txt", "w") as output:
+    with open('trans_probs.txt', "w") as output:
         for prev_tag, tag_dict in tag_tag_counts.items():
             for tag, count in tag_dict.items():
                 output.write(f'{prev_tag} {tag} {(count + 0.01)/(tag_counts[prev_tag] + 0.01 * (len(tag_counts)))}\n') #dont have unseen tag so no need to +1
-                
-trans_probs('twitter_train.txt', 'twitter_tags.txt')
-                
+
 def output_probs(in_train_filename, in_tags_filename):
     hidden_states = []
     with open(in_tags_filename, 'r') as tags:
@@ -401,9 +399,22 @@ def viterbi_predict(in_tags_filename, in_trans_probs_filename, in_output_probs_f
         predictions.append('\n')
         
     with open(out_predictions_filename, 'w') as output:
-        output.writelines(predictions)
 
-# Question 4
+       output.writelines(predictions)
+
+# (c) Viterbi prediction accuracy:   1047/1378 = 0.7597968069666183
+
+'''
+Question 4
+
+- 1st improvement: We've simplified the representation of user handles by collapsing all instances starts with @USER to "@USER". 
+- 2nd improvement: We collapsed all token "http",to "http" as URLS can be unique and can overcomplicate prediction for U.
+- 3rd improvement: Group all hashtags into one token "#" that if token startswith "#" return "#"
+- 4th improvement:  Groups repeated characters in emoticons to a single character.      e.g. :)))) -> :), :(( -> :(
+- 5th improvement: Groups repeated characters in punctuation to a single character.     e.g. !!!! -> !, ????? -> ?
+- 6th improvement:  Identifies tokens that are mostly numeric. If more than half of the characters in the token are digits, returns "100", otherwise returns False.
+'''
+
 
 def URL_identifier(token):
         if token.startswith('http'):
@@ -411,22 +422,19 @@ def URL_identifier(token):
         else:
             return False
         
-    #3rd improvement: cluster @USER -> group the @USER into one token
+
 def USER_identifier(token):
     if token.startswith('@USER'):
         return '@USER'
     else:
         return False
-        
-    #4th improvement: cluster # -> group the # into one token
+
 def hashtag_identifier(token):
     if token[0] == "#":
         return '#'
     else:
         return False
-    
-    #5th improvement: cluster emoticons -> group the emoticons into one token. This is done by removing the replicated symbols in every
-    #emoticon and then grouping them together, e.g. :)))) -> :), :(( -> :(
+
 def emoticon_shortener(token, tag):
     if tag == "E":
         cleaned_token = ''
@@ -437,7 +445,6 @@ def emoticon_shortener(token, tag):
     else:  
         return False
     
-    #6th improvement: cluster repeated characters -> group the repeated characters (non letters) into one token, e.g. !!!! -> !, ????? -> ?
 def repeated_punctuation_shortener(token, tag):
     if tag == ",": #punctuation
         cleaned_token = ''
@@ -459,8 +466,6 @@ def output_probs2(in_train_filename, in_tags_filename):
     with open(in_tags_filename, 'r') as tags:
         hidden_states = [line.strip() for line in tags]
     
-    #get emission probabilities: run the whole train file to count and counts how many times a token appears in a tag
-    #then, for every tag, calculate the probability of the token appearing in that tag
     emission_counts = {}
 
     for state in hidden_states:
@@ -502,6 +507,7 @@ def output_probs2(in_train_filename, in_tags_filename):
                 output.write(f'{token} {state} {prob}\n')
     
 output_probs2('twitter_train.txt', 'twitter_tags.txt')
+
 
 def non_word_shortener(token):
     #if token does not contain any letters or numbers
@@ -683,7 +689,6 @@ def run():
     correct, total, acc = evaluate(viterbi_predictions_filename, in_ans_filename)
     print(f'Viterbi prediction accuracy:   {correct}/{total} = {acc}')
 
-    trans_probs_filename2 =  f'{ddir}/trans_probs2.txt'
     trans_probs_filename2 =  f'{ddir}/trans_probs.txt'
     output_probs_filename2 = f'{ddir}/output_probs2.txt'
 
