@@ -11,7 +11,7 @@ Members:
 Output: 
 Naive prediction accuracy:     1004/1378 = 0.7285921625544267
 Naive prediction2 accuracy:    1016/1378 = 0.737300435413643
-Viterbi prediction accuracy:   1047/1378 = 0.7597968069666183
+Viterbi prediction accuracy:   1049/1378 = 0.7612481857764877
 Viterbi2 prediction accuracy:  1103/1378 = 0.8004354136429608
 '''
 
@@ -253,8 +253,7 @@ def output_probs(in_train_filename, in_tags_filename):
             if len(tokens) >= 2:
                 token = tokens[0]
                 tag = tokens[1]
-                if token.startswith('@USER'):
-                    token = '@USER'
+
                 
                 if token not in emission_counts[tag]:
                     emission_counts[tag][token] = 0
@@ -387,7 +386,7 @@ def viterbi_predict(in_tags_filename, in_trans_probs_filename, in_output_probs_f
 
        output.writelines(predictions)
 
-# (c) Viterbi prediction accuracy:   1047/1378 = 0.7597968069666183
+# (c) Viterbi prediction accuracy:   1049/1378 = 0.7612481857764877
 
 '''
 Question 4
