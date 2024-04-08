@@ -16,26 +16,39 @@ def MLE_predict(training_file):
             line_elements = line.strip()
             if len(line_elements) >= 2:
                 token, tag = line_elements.split()
-                if tag in tag_count:
-                    tag_count[tag] += 1
-                else:
-                    tag_count[tag] = 1
-                if token in pair_count:
-                    if tag in pair_count[token]:
-                        pair_count[token][tag] += 1
-                    else:
-                        pair_count[token][tag] = 1
-                else:
-                    pair_count[token] = {tag: 1}
-    
+                # if tag in tag_count:
+                #     tag_count[tag] += 1
+                # else:
+                #     tag_count[tag] = 1
+                if tag not in tag_count:
+                    tag_count[tag] = 0
+                    
+                tag_count[tag] += 1
+
+                if token not in pair_count:
+                    pair_count[token] = {}
+                if tag not in pair_count[token]:
+                    pair_count[token][tag] = 0
+                
+                pair_count[token][tag] += 1
+
+                # if token in pair_count:
+                #     if tag in pair_count[token]:
+                #         pair_count[token][tag] += 1
+                #     else:
+                #         pair_count[token][tag] = 1
+                # else:
+                #     pair_count[token] = {tag: 1}
+
     #Dictionary of dictionary to store the output probabilties
     #key: token. value: {tag: P(token|tag)=count(token, tag)/count(tag)}
     #smoothing value: 0.01 
+    delta = 0.1
     result = {}
     for token in pair_count:
         result[token] = {}
         for tag in pair_count[token]:
-            result[token][tag] = (pair_count[token][tag] + 0.1) / (tag_count[tag] + 0.1 * (len(pair_count) + 1))
+            result[token][tag] = (pair_count[token][tag] + delta) / (tag_count[tag] + delta * (len(pair_count) + 1))
     
     with open('naive_output_probs.txt', 'w') as outfile:
         for token in result:
@@ -43,16 +56,20 @@ def MLE_predict(training_file):
                 outfile.write(f'{token} {tag} {result[token][tag]}\n')
 MLE_predict('twitter_train.txt')
 
-#Question 2.2b
+#Question 2.1b
 def naive_predict(in_output_probs_filename, in_test_filename, out_prediction_filename):
     output_probs = {}
+    tag_count = {}
     with open(in_output_probs_filename, 'r') as file:
         for line in file:
             token, tag, prob = line.strip().split()
             if token not in output_probs:
                 output_probs[token] = {}
             output_probs[token][tag] = float(prob)
-    print(output_probs)
+
+            if tag not in tag_count:
+                tag_count[tag] = 0
+            tag_count[tag] += 1
 
     tweets = []
     with open(in_test_filename, 'r') as file:
@@ -64,8 +81,10 @@ def naive_predict(in_output_probs_filename, in_test_filename, out_prediction_fil
     predicted_tags = []
     for token in tweets:
         if token in output_probs:
-            predicted_tag = max(output_probs[token], key=output_probs[token].get)
+            predicted_tag = max(output_probs[token].keys(), key=output_probs[token].get)
         else:
+            # predicted_tag = min(tag_count.keys(), key=tag_count.get)
+            
             if token.startswith('@'):
                 predicted_tag = '@'
             else:
@@ -137,16 +156,496 @@ def naive_predict2(in_output_probs_filename, in_train_filename, in_test_filename
         for tag in predicted_tags2:
             outfile.write(f'{tag}\n')
 # Question 2.2.b
-# Naive prediction2 accuracy:    1075/1378 = 0.7801161103047896
+# Question 2.2.c. Naive prediction2 accuracy:    1075/1378 = 0.7801161103047896
 
+"""Question 3"""
+# Question 3.a 
 
+def output_prob(training_file):
+   #create two dictionary to store the count of tags and the count of pair tags and words
+   # read the training_file and split the words and tags 
+    # for each word and tag pair, increment the count of the tag and the pair tag and word
+    # tag_count = {tag: count(tag)}
+    #pair_count = {token: {tag: count(token, tag)}}
+    tag_count = {}
+    pair_count = {}
+
+    with open(training_file, 'r') as file:
+        for line in file:
+            line_elements = line.strip()
+            if len(line_elements) >= 2:
+                token, tag = line_elements.split()
+                if tag in tag_count:
+                    tag_count[tag] += 1
+                else:
+                    tag_count[tag] = 1
+                if token in pair_count:
+                    if tag in pair_count[token]:
+                        pair_count[token][tag] += 1
+                    else:
+                        pair_count[token][tag] = 1
+                else:
+                    pair_count[token] = {tag: 1}
+    
+    #Dictionary of dictionary to store the output probabilties
+    #key: token. value: {tag: P(token|tag)=count(token, tag)/count(tag)}
+    #smoothing value: 0.01 
+    result = {}
+    for token in pair_count:
+        result[token] = {}
+        for tag in pair_count[token]:
+            result[token][tag] = (pair_count[token][tag] + 0.01) / (tag_count[tag] + 0. * (len(pair_count) + 1))
+    
+    with open('output_probs.txt', 'w') as outfile:
+        for token in result:
+            for tag in result[token]:
+                outfile.write(f'{token} {tag} {result[token][tag]}\n')
+output_prob('twitter_train.txt')
+
+#Question 3
+def trans_probs(in_train_filename, in_tags_filename):
+    tag_tag_counts = {}
+    tag_counts = {}
+
+    hidden_states = []
+    with open(in_tags_filename, 'r') as tags: 
+        for line in tags:
+            hidden_states.append(line.strip())
+    hidden_states.append("stop")
+
+    with open(in_train_filename, 'r') as train:
+        prev_tag = "start"
+        for line in train:
+            tokens = line.split()  
+            if len(tokens) < 2:
+                if prev_tag in tag_tag_counts:
+                    if "stop" in tag_tag_counts[prev_tag]:
+                        tag_tag_counts[prev_tag]["stop"] += 1
+                    else:
+                        tag_tag_counts[prev_tag]["stop"] = 1
+                else:
+                    tag_tag_counts[prev_tag] = {"stop": 1}
+                prev_tag = "start"
+            
+            elif len(tokens) >= 2:
+                tag = tokens[1]
+                if prev_tag in tag_tag_counts:
+                    if tag in tag_tag_counts[prev_tag]:
+                        tag_tag_counts[prev_tag][tag] += 1
+                    else:
+                        tag_tag_counts[prev_tag][tag] = 1
+                else:
+                    tag_tag_counts[prev_tag] = {tag: 1}
+                
+                if prev_tag in tag_counts:
+                    tag_counts[prev_tag] += 1
+                else:
+                    tag_counts[prev_tag] = 1
+                prev_tag = tag
+    
+    #add 0.0 to unseen transitions
+    for prev_tag in tag_tag_counts:
+        for tag in hidden_states:
+            if tag not in tag_tag_counts[prev_tag]:
+                tag_tag_counts[prev_tag][tag] = 0
+
+    with open("trans_probs.txt", "w") as output:
+        for prev_tag, tag_dict in tag_tag_counts.items():
+            for tag, count in tag_dict.items():
+                output.write(f'{prev_tag} {tag} {(count + 0.01)/(tag_counts[prev_tag] + 0.01 * (len(tag_counts)))}\n') #dont have unseen tag so no need to +1
+                
+trans_probs('twitter_train.txt', 'twitter_tags.txt')
+                
+def output_probs(in_train_filename, in_tags_filename):
+    hidden_states = []
+    with open(in_tags_filename, 'r') as tags:
+        hidden_states = [line.strip() for line in tags]
+    
+    #get emission probabilities: run the whole train file to count and counts how many times a token appears in a tag
+    #then, for every tag, calculate the probability of the token appearing in that tag
+    emission_counts = {}
+
+    for state in hidden_states:
+        emission_counts[state] = {}
+
+    with open(in_train_filename, 'r') as train:
+        for line in train:
+            tokens = line.split()
+            if len(tokens) >= 2:
+                token = tokens[0]
+                tag = tokens[1]
+                if token.startswith('@USER'):
+                    token = '@USER'
+                
+                if token not in emission_counts[tag]:
+                    emission_counts[tag][token] = 0
+                emission_counts[tag][token] += 1
+
+                # for state in hidden_states:
+                #     if tag == state:
+                #         if token in emission_counts[state]:
+                #             emission_counts[state][token] += 1
+                #         else:
+                #             emission_counts[state][token] = 1
+                #     else: 
+                #         if token not in emission_counts[state]:
+                #             emission_counts[state][token] = 0
+    
+    #change the counts to probabilities
+    emission_probs = {}
+    for state in hidden_states:
+        emission_probs[state] = {}
+        for token, count in emission_counts[state].items():
+            emission_probs[state][token] = (count + 0.01)/(sum(emission_counts[state].values()) + 0.01 * (len(emission_counts[state]) + 1)) 
+    
+    with open("output_probs.txt", "w") as output:
+        for state, token_dict in emission_probs.items():
+            for token, prob in token_dict.items():
+                output.write(f'{token} {state} {prob}\n')
+    
+output_probs('twitter_train.txt', 'twitter_tags.txt')
+        
+#(b)
 def viterbi_predict(in_tags_filename, in_trans_probs_filename, in_output_probs_filename, in_test_filename,
                     out_predictions_filename):
-    pass
+    #get the hidden states
+    hidden_states = []
+    hidden_states_index = {}
+    with open(in_tags_filename, 'r') as tags: 
+        for line in tags:
+            hidden_states.append(line.strip())
+            hidden_states_index[hidden_states[-1]] = len(hidden_states) - 1
+    # hidden_states.append("stop")
+
+    output_probs = {}
+    with open(in_output_probs_filename, 'r') as out_probs:
+        for line in out_probs:
+            token, tag, prob = line.split()
+            if token in output_probs:
+                output_probs[token][hidden_states_index[tag]] = float(prob)
+            else:
+                output_probs[token] = {hidden_states_index[tag]: float(prob)}
+
+    transition_probs = [[0] * len(hidden_states) for _ in range(len(hidden_states))]
+    initial_probs = [0] * len(hidden_states)
+    stop_probs = [0] * len(hidden_states)
+    with open(in_trans_probs_filename, 'r') as trans_probs:
+        for line in trans_probs:
+            prev_tag, tag, prob = line.split()
+            if prev_tag == "start":
+                if tag == "stop":
+                    continue
+                initial_probs[hidden_states_index[tag]] = float(prob)
+            else :
+                if tag == "stop":
+                    stop_probs[hidden_states_index[prev_tag]] = float(prob)
+                else:   
+                    transition_probs[hidden_states_index[prev_tag]][hidden_states_index[tag]] = float(prob)
+
+    #run the file, take each sentence, and put into the viterbi fucntion
+    def viterbi(sentence, hidden_states, transition_probs, output_probs, initial_probs, stop_probs):
+        #initialise the viterbi table
+        viterbi_table = [[]]
+        backpointer = [[]]
+
+        for i in range(len(sentence)):
+            if sentence[i].startswith('@USER'):
+                sentence[i] = '@USER'
+
+        #getting emission probabilities for this sentence
+        emission_probs = {}
+        for tag in hidden_states:
+            tag_num = hidden_states_index[tag]
+            emission_probs[tag_num] = {}
+            for token in sentence:
+                if token in output_probs:
+                    if tag_num in output_probs[token]:
+                        emission_probs[tag_num][token] = output_probs[token][tag_num]
+                    else:
+                        # formula for unseen emission
+                        emission_probs[tag_num][token] = 0.000001
+                else:
+                    # formula for unseen token
+                    emission_probs[tag_num][token] = 0.01
+
+        for i in range(0, len(hidden_states)):
+            viterbi_table[0].append(initial_probs[i] * emission_probs[i][sentence[0]])
+            backpointer[0].append(0)
+        
+        for t in range(1, len(sentence)):
+            viterbi_table.append([])
+            backpointer.append([])
+            for s in range(0, len(hidden_states)):
+                prob_values = []
+                for s_prime in range(0, len(hidden_states)):
+                    prob_values.append(viterbi_table[t - 1][s_prime] * transition_probs[s_prime][s] * emission_probs[s][sentence[t]])
+                viterbi_table[t].append(max(prob_values))
+                backpointer[t].append(prob_values.index(max(prob_values)))
+
+        stop_prob_values = []
+        for s in range(0, len(hidden_states)):
+            stop_prob_values.append(viterbi_table[-1][s] * stop_probs[s])
+        maxProb = max(stop_prob_values)
+        finalBp = stop_prob_values.index(maxProb)
+
+        #backtrack
+        predicted_tags = [] 
+        predicted_tags.append(hidden_states[finalBp])
+        for t in range(len(sentence) - 1, 0, -1):
+            predicted_tags.append(hidden_states[backpointer[t][finalBp]])
+            finalBp = backpointer[t][finalBp]
+        return predicted_tags[::-1]
+
+    tweet_sentences = [[]]
+    with open(in_test_filename, 'r') as file:
+        for line in file: 
+            token = line.strip()
+            if len(token) == 0:
+                tweet_sentences.append([])
+            else:
+                tweet_sentences[-1].append(token)
+
+    predictions = []
+    for sentence in tweet_sentences:
+        if len(sentence) == 0:
+            continue
+        predicted_tags = viterbi(sentence, hidden_states, transition_probs, output_probs, initial_probs, stop_probs)
+        for tag in predicted_tags:
+            predictions.append(f'{tag}\n')
+        predictions.append('\n')
+        
+    with open(out_predictions_filename, 'w') as output:
+        output.writelines(predictions)
+
+# Question 4
+
+def URL_identifier(token):
+        if token.startswith('http'):
+            return 'http'
+        else:
+            return False
+        
+    #3rd improvement: cluster @USER -> group the @USER into one token
+def USER_identifier(token):
+    if token.startswith('@USER'):
+        return '@USER'
+    else:
+        return False
+        
+    #4th improvement: cluster # -> group the # into one token
+def hashtag_identifier(token):
+    if token[0] == "#":
+        return '#'
+    else:
+        return False
+    
+    #5th improvement: cluster emoticons -> group the emoticons into one token. This is done by removing the replicated symbols in every
+    #emoticon and then grouping them together, e.g. :)))) -> :), :(( -> :(
+def emoticon_shortener(token, tag):
+    if tag == "E":
+        cleaned_token = ''
+        for i in range(len(token)):
+            if i == 0 or token[i] != token[i-1]:
+                cleaned_token += token[i]
+        return cleaned_token
+    else:  
+        return False
+    
+    #6th improvement: cluster repeated characters -> group the repeated characters (non letters) into one token, e.g. !!!! -> !, ????? -> ?
+def repeated_punctuation_shortener(token, tag):
+    if tag == ",": #punctuation
+        cleaned_token = ''
+        for i in range(len(token)):
+            if i == 0 or token[i] != token[i-1]:
+                cleaned_token += token[i]
+        return cleaned_token
+    else:
+        return False
+    
+def mostly_numeric(token):
+    if sum(char.isdigit() for char in token) > len(token) / 2:
+        return "100"
+    else:
+        return False
+
+def output_probs2(in_train_filename, in_tags_filename):
+    hidden_states = []
+    with open(in_tags_filename, 'r') as tags:
+        hidden_states = [line.strip() for line in tags]
+
+    emission_counts = {}
+    for state in hidden_states:
+            emission_counts[state] = {}
+
+    with open(in_train_filename, 'r') as train:
+        for line in train:
+            tokens = line.split()
+            if len(tokens) >= 2:
+                token = tokens[0]
+                tag = tokens[1]
+
+                if USER_identifier(token):
+                    token = '@USER'
+                if hashtag_identifier(token):
+                    token = '#'
+                if emoticon_shortener(token, tag):
+                    token = emoticon_shortener(token, tag)
+                if repeated_punctuation_shortener(token, tag):
+                    token = repeated_punctuation_shortener(token, tag)
+                if URL_identifier(token):
+                    token = "URL"
+                if mostly_numeric(token):
+                    token = mostly_numeric(token)
+                
+                for state in hidden_states:
+                    if tag == state:
+                        if token in emission_counts[state]:
+                            emission_counts[state][token] += 1
+                        else:
+                            emission_counts[state][token] = 1
+                    else: 
+                        if token not in emission_counts[state]:
+                            emission_counts[state][token] = 0
+
+    #change the counts to probabilities
+    emission_probs = {}
+    for state in hidden_states:
+        emission_probs[state] = {}
+        for token, count in emission_counts[state].items():
+            emission_probs[state][token] = (count + 0.01)/(sum(emission_counts[state].values()) + 0.01 * (len(emission_counts[state]) + 1))
+    
+    with open("output_probs2.txt", "w") as output:
+        for state, token_dict in emission_probs.items():
+            for token, prob in token_dict.items():
+                output.write(f'{token} {state} {prob}\n')
+
+output_probs2('twitter_train.txt', 'twitter_tags.txt')
+
+def non_word_shortener(token):
+    #if token does not contain any letters or numbers
+    if not any(char.isalpha() or char.isdigit() for char in token):    
+        cleaned_token = ''
+        for i in range(len(token)):
+            if i == 0 or token[i] != token[i-1]:
+                cleaned_token += token[i]
+        return cleaned_token
+    else:
+        return False
+
+def tweet_preprocessor(tweet):
+    tweet_sentences = [[]]
+    with open(tweet, 'r') as file:
+        for line in file:
+            token = line.strip()
+            if len(token) == 0:
+                tweet_sentences.append([])
+                continue
+            if non_word_shortener(token):
+                token = non_word_shortener(token)
+            if URL_identifier(token):
+                token = "URL"
+            if USER_identifier(token):
+                token = '@USER'
+            if hashtag_identifier(token):
+                token = '#'
+            if mostly_numeric(token):
+                token = mostly_numeric(token)
+            tweet_sentences[-1].append(token)
+    return tweet_sentences
 
 def viterbi_predict2(in_tags_filename, in_trans_probs_filename, in_output_probs_filename, in_test_filename,
                      out_predictions_filename):
-    pass
+    #get the hidden states
+    hidden_states = []
+    with open(in_tags_filename, 'r') as tags: 
+        for line in tags:
+            hidden_states.append(line.strip())
+
+    output_probs = {}
+    with open(in_output_probs_filename, 'r') as out_probs:
+        for line in out_probs:
+            token, tag, prob = line.split()
+            if token in output_probs:
+                output_probs[token][hidden_states.index(tag)] = float(prob)
+            else:
+                output_probs[token] = {hidden_states.index(tag): float(prob)}
+
+    transition_probs = {}
+    initial_probs = {}
+    stop_probs = {}
+    with open(in_trans_probs_filename, 'r') as trans_probs:
+        for line in trans_probs:
+            prev_tag, tag, prob = line.split()
+            if prev_tag == "start":
+                if tag == "stop":
+                    continue
+                initial_probs[hidden_states.index(tag)] = float(prob)
+            else :
+                if tag == "stop":
+                    stop_probs[hidden_states.index(prev_tag)] = float(prob)
+                else:   
+                    if hidden_states.index(prev_tag) in transition_probs:
+                        transition_probs[hidden_states.index(prev_tag)][hidden_states.index(tag)] = float(prob)
+                    else:
+                        transition_probs[hidden_states.index(prev_tag)] = {hidden_states.index(tag): float(prob)}
+    def viterbi(sentence, hidden_states, transition_probs, output_probs, initial_probs, stop_probs):
+        #initialise the viterbi table
+        viterbi_table = [[]]
+        backpointer = [[]]
+
+        #getting emission probabilities for this sentence
+        emission_probs = {}
+        for tag in hidden_states:
+            tag_num = hidden_states.index(tag)
+            emission_probs[tag_num] = {}
+            for token in sentence:
+                if token in output_probs:
+                    emission_probs[tag_num][token] = output_probs[token][tag_num]
+                else:
+                    emission_probs[tag_num][token] = 0.01
+
+        for i in range(0, len(hidden_states)):
+            viterbi_table[0].append(initial_probs[i] * emission_probs[i][sentence[0]])
+            backpointer[0].append(0)
+        
+        for t in range(1, len(sentence)):
+            viterbi_table.append([])
+            backpointer.append([])
+            for s in range(0, len(hidden_states)):
+                prob_values = []
+                for s_prime in range(0, len(hidden_states)):
+                    prob_values.append(viterbi_table[t - 1][s_prime] * transition_probs[s_prime][s] * emission_probs[s][sentence[t]])
+                viterbi_table[t].append(max(prob_values))
+                backpointer[t].append(prob_values.index(max(prob_values)))
+
+        stop_prob_values = []
+        for s in range(0, len(hidden_states) - 1):
+            stop_prob_values.append(viterbi_table[-1][s] * stop_probs[s])
+        maxProb = max(stop_prob_values)
+        finalBp = stop_prob_values.index(maxProb)
+
+        #backtrack
+        predicted_tags = []
+        predicted_tags.append(hidden_states[finalBp])
+        for t in range(len(sentence) - 1, 0, -1):
+            predicted_tags.insert(0, hidden_states[backpointer[t][finalBp]])
+            finalBp = backpointer[t][finalBp]
+        return predicted_tags
+    
+    tweet_sentences = tweet_preprocessor(in_test_filename)
+    predictions = []
+    for sentence in tweet_sentences:
+        if len(sentence) == 0:
+            continue
+        predicted_tags = viterbi(sentence, hidden_states, transition_probs, output_probs, initial_probs, stop_probs)
+        for tag in predicted_tags:
+            predictions.append(f'{tag}\n')
+        predictions.append('\n')
+        
+    with open(out_predictions_filename, 'w') as output:
+        output.writelines(predictions)
+
+
 
 
 
@@ -164,6 +663,7 @@ def evaluate(in_prediction_filename, in_answer_filename):
     for pred, truth in zip(predicted_tags, ground_truth_tags):
         if pred == truth: correct += 1
     return correct, len(predicted_tags), correct/len(predicted_tags)
+
 
 
 
@@ -193,24 +693,25 @@ def run():
     correct, total, acc = evaluate(naive_prediction_filename2, in_ans_filename)
     print(f'Naive prediction2 accuracy:    {correct}/{total} = {acc}')
 
-    # trans_probs_filename =  f'{ddir}/trans_probs.txt'
-    # output_probs_filename = f'{ddir}/output_probs.txt'
+    trans_probs_filename =  f'{ddir}/trans_probs.txt'
+    output_probs_filename = f'{ddir}/output_probs.txt'
 
-    # in_tags_filename = f'{ddir}/twitter_tags.txt'
-    # viterbi_predictions_filename = f'{ddir}/viterbi_predictions.txt'
-    # viterbi_predict(in_tags_filename, trans_probs_filename, output_probs_filename, in_test_filename,
-    #                 viterbi_predictions_filename)
-    # correct, total, acc = evaluate(viterbi_predictions_filename, in_ans_filename)
-    # print(f'Viterbi prediction accuracy:   {correct}/{total} = {acc}')
+    in_tags_filename = f'{ddir}/twitter_tags.txt'
+    viterbi_predictions_filename = f'{ddir}/viterbi_predictions.txt'
+    viterbi_predict(in_tags_filename, trans_probs_filename, output_probs_filename, in_test_filename,
+                    viterbi_predictions_filename)
+    correct, total, acc = evaluate(viterbi_predictions_filename, in_ans_filename)
+    print(f'Viterbi prediction accuracy:   {correct}/{total} = {acc}')
 
-    # trans_probs_filename2 =  f'{ddir}/trans_probs2.txt'
-    # output_probs_filename2 = f'{ddir}/output_probs2.txt'
+    trans_probs_filename2 =  f'{ddir}/trans_probs2.txt'
+    trans_probs_filename2 =  f'{ddir}/trans_probs.txt'
+    output_probs_filename2 = f'{ddir}/output_probs2.txt'
 
-    # viterbi_predictions_filename2 = f'{ddir}/viterbi_predictions2.txt'
-    # viterbi_predict2(in_tags_filename, trans_probs_filename2, output_probs_filename2, in_test_filename,
-    #                  viterbi_predictions_filename2)
-    # correct, total, acc = evaluate(viterbi_predictions_filename2, in_ans_filename)
-    # print(f'Viterbi2 prediction accuracy:  {correct}/{total} = {acc}')
+    viterbi_predictions_filename2 = f'{ddir}/viterbi_predictions2.txt'
+    viterbi_predict2(in_tags_filename, trans_probs_filename2, output_probs_filename2, in_test_filename,
+                     viterbi_predictions_filename2)
+    correct, total, acc = evaluate(viterbi_predictions_filename2, in_ans_filename)
+    print(f'Viterbi2 prediction accuracy:  {correct}/{total} = {acc}')
     
 
 
