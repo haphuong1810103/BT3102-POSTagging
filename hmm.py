@@ -154,51 +154,13 @@ def naive_predict2(in_output_probs_filename, in_train_filename, in_test_filename
 # Question 2.2c
 # Naive prediction2 accuracy:    1016/1378 = 0.737300435413643
 
-"""Question 3"""
-# Question 3.a 
 
-def output_prob(training_file):
-   #create two dictionary to store the count of tags and the count of pair tags and words
-   # read the training_file and split the words and tags 
-    # for each word and tag pair, increment the count of the tag and the pair tag and word
-    # tag_count = {tag: count(tag)}
-    #pair_count = {token: {tag: count(token, tag)}}
-    tag_count = {}
-    pair_count = {}
+''' 
+Question 3
+'''
+#(a)
 
-    with open(training_file, 'r') as file:
-        for line in file:
-            line_elements = line.strip()
-            if len(line_elements) >= 2:
-                token, tag = line_elements.split()
-                if tag in tag_count:
-                    tag_count[tag] += 1
-                else:
-                    tag_count[tag] = 1
-                if token in pair_count:
-                    if tag in pair_count[token]:
-                        pair_count[token][tag] += 1
-                    else:
-                        pair_count[token][tag] = 1
-                else:
-                    pair_count[token] = {tag: 1}
-    
-    #Dictionary of dictionary to store the output probabilties
-    #key: token. value: {tag: P(token|tag)=count(token, tag)/count(tag)}
-    #smoothing value: 0.01 
-    result = {}
-    for token in pair_count:
-        result[token] = {}
-        for tag in pair_count[token]:
-            result[token][tag] = (pair_count[token][tag] + 0.01) / (tag_count[tag] + 0. * (len(pair_count) + 1))
-    
-    with open('output_probs.txt', 'w') as outfile:
-        for token in result:
-            for tag in result[token]:
-                outfile.write(f'{token} {tag} {result[token][tag]}\n')
-output_prob('twitter_train.txt')
-
-#Question 3
+# define the function to calculate the transition probabilities, including the "start" and "stop" states
 def trans_probs(in_train_filename, in_tags_filename):
     tag_tag_counts = {}
     tag_counts = {}
@@ -209,6 +171,7 @@ def trans_probs(in_train_filename, in_tags_filename):
             hidden_states.append(line.strip())
     hidden_states.append("stop")
 
+    # get the transition probabilities: run the whole train file to count and counts how many times a tag appears after another tag
     with open(in_train_filename, 'r') as train:
         prev_tag = "start"
         for line in train:
@@ -239,29 +202,36 @@ def trans_probs(in_train_filename, in_tags_filename):
                     tag_counts[prev_tag] = 1
                 prev_tag = tag
     
-    #add 0.0 to unseen transitions
     for prev_tag in tag_tag_counts:
         for tag in hidden_states:
             if tag not in tag_tag_counts[prev_tag]:
+                #for unseen transtition, count = 0
                 tag_tag_counts[prev_tag][tag] = 0
 
-    with open('trans_probs.txt', "w") as output:
+
+    #change the counts to probabilities using the MLE formula with the smoothing value of 0.01
+    with open("trans_probs.txt", "w") as output:
         for prev_tag, tag_dict in tag_tag_counts.items():
             for tag, count in tag_dict.items():
-                output.write(f'{prev_tag} {tag} {(count + 0.01)/(tag_counts[prev_tag] + 0.01 * (len(tag_counts)))}\n') #dont have unseen tag so no need to +1
+                #smoothing
+                output.write(f'{prev_tag} {tag} {(count + 0.01)/(tag_counts[prev_tag] + 0.01 * (len(tag_counts)))}\n') #since there are no unseen tag, we excluded the "+1" in the denominator
+                
+trans_probs('twitter_train.txt', 'twitter_tags.txt')
+
+# define the function to calculate the emission probabilities       
 
 def output_probs(in_train_filename, in_tags_filename):
+    #get the hidden states
     hidden_states = []
     with open(in_tags_filename, 'r') as tags:
         hidden_states = [line.strip() for line in tags]
     
-    #get emission probabilities: run the whole train file to count and counts how many times a token appears in a tag
-    #then, for every tag, calculate the probability of the token appearing in that tag
+    # initialise the dictionary to store the emission counts
     emission_counts = {}
-
     for state in hidden_states:
         emission_counts[state] = {}
 
+    # get emission counts: run the whole train file to count and counts how many times a token appears in a tag
     with open(in_train_filename, 'r') as train:
         for line in train:
             tokens = line.split()
@@ -275,7 +245,7 @@ def output_probs(in_train_filename, in_tags_filename):
                     emission_counts[tag][token] = 0
                 emission_counts[tag][token] += 1
     
-    #change the counts to probabilities
+    #change the counts to probabilities using the MLE formula with the smoothing value of 0.01
     emission_probs = {}
     for state in hidden_states:
         emission_probs[state] = {}
@@ -299,8 +269,8 @@ def viterbi_predict(in_tags_filename, in_trans_probs_filename, in_output_probs_f
         for line in tags:
             hidden_states.append(line.strip())
             hidden_states_index[hidden_states[-1]] = len(hidden_states) - 1
-    # hidden_states.append("stop")
 
+    # get the output probabilities from the output_probs.txt file and store them in a dictionary for easy access
     output_probs = {}
     with open(in_output_probs_filename, 'r') as out_probs:
         for line in out_probs:
@@ -310,6 +280,7 @@ def viterbi_predict(in_tags_filename, in_trans_probs_filename, in_output_probs_f
             else:
                 output_probs[token] = {hidden_states_index[tag]: float(prob)}
 
+    # get the transition probabilities from the trans_probs.txt file and store them in a 2D list for easy access
     transition_probs = [[0] * len(hidden_states) for _ in range(len(hidden_states))]
     initial_probs = [0] * len(hidden_states)
     stop_probs = [0] * len(hidden_states)
@@ -326,17 +297,13 @@ def viterbi_predict(in_tags_filename, in_trans_probs_filename, in_output_probs_f
                 else:   
                     transition_probs[hidden_states_index[prev_tag]][hidden_states_index[tag]] = float(prob)
 
-    #run the file, take each sentence, and put into the viterbi fucntion
+    # define a nested function to calculate the viterbi algorithm
     def viterbi(sentence, hidden_states, transition_probs, output_probs, initial_probs, stop_probs):
-        #initialise the viterbi table
+        # initialise the viterbi table
         viterbi_table = [[]]
         backpointer = [[]]
 
-        for i in range(len(sentence)):
-            if sentence[i].startswith('@USER'):
-                sentence[i] = '@USER'
-
-        #getting emission probabilities for this sentence
+        # getting emission probabilities 
         emission_probs = {}
         for tag in hidden_states:
             tag_num = hidden_states_index[tag]
@@ -346,12 +313,13 @@ def viterbi_predict(in_tags_filename, in_trans_probs_filename, in_output_probs_f
                     if tag_num in output_probs[token]:
                         emission_probs[tag_num][token] = output_probs[token][tag_num]
                     else:
-                        # formula for unseen emission
+                        # for unseen emission, assign a very small value
                         emission_probs[tag_num][token] = 0.000001
                 else:
-                    # formula for unseen token
-                    emission_probs[tag_num][token] = 0.01
+                    # for unseen token, assign a small value
+                    emission_probs[tag_num][token] = 0.001
 
+        # viterbi algorithm
         for i in range(0, len(hidden_states)):
             viterbi_table[0].append(initial_probs[i] * emission_probs[i][sentence[0]])
             backpointer[0].append(0)
@@ -380,6 +348,7 @@ def viterbi_predict(in_tags_filename, in_trans_probs_filename, in_output_probs_f
             finalBp = backpointer[t][finalBp]
         return predicted_tags[::-1]
 
+    # read the test data and store them in a list of sentences
     tweet_sentences = [[]]
     with open(in_test_filename, 'r') as file:
         for line in file: 
@@ -393,6 +362,7 @@ def viterbi_predict(in_tags_filename, in_trans_probs_filename, in_output_probs_f
     for sentence in tweet_sentences:
         if len(sentence) == 0:
             continue
+        # run the viterbi algorithm for each sentence
         predicted_tags = viterbi(sentence, hidden_states, transition_probs, output_probs, initial_probs, stop_probs)
         for tag in predicted_tags:
             predictions.append(f'{tag}\n')
