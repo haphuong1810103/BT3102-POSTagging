@@ -81,7 +81,7 @@ def naive_predict(in_output_probs_filename, in_test_filename, out_prediction_fil
             outfile.write(f'{tag}\n')
 
 # Question 2.1.c
-# Naive prediction accuracy:     1063/1378 = 0.7714078374455733
+#Naive prediction accuracy:     1004/1378 = 0.7285921625544267
 
 
 '''
@@ -138,7 +138,7 @@ def naive_predict2(in_output_probs_filename, in_train_filename, in_test_filename
         for tag in predicted_tags2:
             outfile.write(f'{tag}\n')
 # Question 2.2.b
-# Question 2.2.c. Naive prediction2 accuracy:    1075/1378 = 0.7801161103047896
+# Naive prediction2 accuracy:    1016/1378 = 0.737300435413643
 
 """Question 3"""
 # Question 3.a 
