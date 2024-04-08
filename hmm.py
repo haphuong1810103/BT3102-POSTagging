@@ -112,15 +112,13 @@ By Bayes' rule:
         P(x = w) = count(w) / count(total tokens)
         P(x = w | y = j) = count(w,j) / count(j).
     
+    Since we use the same twitter_train.txt file to calculate the probabilities, the denominator P(x = w) is the same for all tags.
     Thus we can simplify the formula to:
-        [p(x = w | y = j) * count(j) / count(total tags) ] / [count(w) / count(total tokens)]
-        
-    Since each token is assigned to a single tag, count(total tags) == count(total tokens). 
-    Thus we can simplify the formula to: 
-        [p(x = w | y = j) ] * [ count(j) / count(w)]
+        P(y = j | x = w) = [ P(x = w | y = j) * P(y = j) ]
+        P(y = j | x = w) = [ P(x = w | y = j) * [count(j) / count(total tags)]
 
-    We can get P(x = w | y = j) from the naive_output_probs file
-    We can get count(j) / count(w) by counting the number of times a tag appears in the training data and dividing it by the total number of tokens
+    We can get P(x = w | y = j) from the naive_output_probs.txt file
+    We can get count(j) / count(total tags) by counting the number of times a tag appears in the training data and dividing it by the total number of tags
 '''
 
 # Question 2.2b
