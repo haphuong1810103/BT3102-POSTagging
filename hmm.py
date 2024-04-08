@@ -670,7 +670,7 @@ def run():
     correct, total, acc = evaluate(viterbi_predictions_filename, in_ans_filename)
     print(f'Viterbi prediction accuracy:   {correct}/{total} = {acc}')
 
-    trans_probs_filename2 =  f'{ddir}/trans_probs2.txt'
+    trans_probs_filename2 =  f'{ddir}/trans_probs.txt'
     output_probs_filename2 = f'{ddir}/output_probs2.txt'
 
     viterbi_predictions_filename2 = f'{ddir}/viterbi_predictions2.txt'
