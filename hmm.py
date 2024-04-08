@@ -16,10 +16,6 @@ def MLE_predict(training_file):
             line_elements = line.strip()
             if len(line_elements) >= 2:
                 token, tag = line_elements.split()
-                # if tag in tag_count:
-                #     tag_count[tag] += 1
-                # else:
-                #     tag_count[tag] = 1
                 if tag not in tag_count:
                     tag_count[tag] = 0
                     
@@ -32,13 +28,6 @@ def MLE_predict(training_file):
                 
                 pair_count[token][tag] += 1
 
-                # if token in pair_count:
-                #     if tag in pair_count[token]:
-                #         pair_count[token][tag] += 1
-                #     else:
-                #         pair_count[token][tag] = 1
-                # else:
-                #     pair_count[token] = {tag: 1}
 
     #Dictionary of dictionary to store the output probabilties
     #key: token. value: {tag: P(token|tag)=count(token, tag)/count(tag)}
@@ -83,13 +72,8 @@ def naive_predict(in_output_probs_filename, in_test_filename, out_prediction_fil
         if token in output_probs:
             predicted_tag = max(output_probs[token].keys(), key=output_probs[token].get)
         else:
-            # predicted_tag = min(tag_count.keys(), key=tag_count.get)
-            
-            if token.startswith('@'):
-                predicted_tag = '@'
-            else:
-                #thinking about the case that if token is Summer, but in output_probs only only has summer
-                predicted_tag = 'N' #default tag is Noun 
+            # if token unseen, predict its tag as N 
+            predicted_tag = 'N' #default tag is Noun 
         predicted_tags.append(predicted_tag)
     
     with open(out_prediction_filename, 'w', encoding="utf-8") as outfile:
@@ -146,10 +130,8 @@ def naive_predict2(in_output_probs_filename, in_train_filename, in_test_filename
         if token in naive2_probs:
             predicted_tag = max(naive2_probs[token], key=naive2_probs[token].get)
         else:
-            if token.startswith('@'):
-                predicted_tag = '@'
-            else:
-                predicted_tag = 'N'
+            # if token unseen, predict its tag as N 
+            predicted_tag = 'N' #default tag is Noun 
         predicted_tags2.append(predicted_tag)
 
     with open(out_prediction_filename, 'w', encoding="utf-8") as outfile:
@@ -280,16 +262,6 @@ def output_probs(in_train_filename, in_tags_filename):
                 if token not in emission_counts[tag]:
                     emission_counts[tag][token] = 0
                 emission_counts[tag][token] += 1
-
-                # for state in hidden_states:
-                #     if tag == state:
-                #         if token in emission_counts[state]:
-                #             emission_counts[state][token] += 1
-                #         else:
-                #             emission_counts[state][token] = 1
-                #     else: 
-                #         if token not in emission_counts[state]:
-                #             emission_counts[state][token] = 0
     
     #change the counts to probabilities
     emission_probs = {}
