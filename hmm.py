@@ -120,7 +120,7 @@ By Bayes' rule:
         [p(x = w | y = j) ] * [ count(j) / count(w)]
 
     We can get P(x = w | y = j) from the naive_output_probs file
-    We can get count(j) / count(w) by counting the number of times a tag appears in the training data and dividing it by the total number of tags/tokens
+    We can get count(j) / count(w) by counting the number of times a tag appears in the training data and dividing it by the total number of tokens
 '''
 
 # Question 2.2b
