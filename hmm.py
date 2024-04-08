@@ -2,11 +2,8 @@
 
 #Question 2.1a
 
-def MLE_predict(training_file):
-    #create two dictionary to store the count of tags and the count of pair tags and words
-    # read the training_file and split the words and tags 
-    # for each word and tag pair, increment the count of the tag and the pair tag and word
-    
+def naive_process(training_file, output_probs_filename):
+    # Create two dictionaries to store the count of tags and the count of pair tags and words
     tag_count = {}
     pair_count = {}
 
@@ -27,10 +24,9 @@ def MLE_predict(training_file):
                 
                 pair_count[token][tag] += 1
 
-
-    #Dictionary of dictionary to store the output probabilties
-    #key: token. value: {tag: P(token|tag)=count(token, tag)/count(tag)}
-    #smoothing value: 0.01 
+    # Dictionary of dictionary to store the output probabilities
+    # key: token, value: {tag: P(token|tag) = (count(token, tag) + smoothing) / (count(tag) + smoothing * (number of tokens + 1))}
+    # Smoothing value: 0.01 
     delta = 0.1
     result = {}
     for token in pair_count:
@@ -38,16 +34,19 @@ def MLE_predict(training_file):
         for tag in pair_count[token]:
             result[token][tag] = (pair_count[token][tag] + delta) / (tag_count[tag] + delta * (len(pair_count) + 1))
     
-    with open('naive_output_probs.txt', 'w') as outfile:
+    with open(output_probs_filename, 'w') as outfile:
         for token in result:
             for tag in result[token]:
                 outfile.write(f'{token} {tag} {result[token][tag]}\n')
-MLE_predict('twitter_train.txt')
+naive_process('twitter_train.txt', 'naive_output_probs.txt')
 
 #Question 2.1b
+# This function takes the output probabilities and test data as input and predicts the tags for the test data
 def naive_predict(in_output_probs_filename, in_test_filename, out_prediction_filename):
     output_probs = {}
     tag_count = {}
+    
+    # Read the output probabilities from the file and store them in a dictionary
     with open(in_output_probs_filename, 'r') as file:
         for line in file:
             token, tag, prob = line.strip().split()
@@ -60,6 +59,8 @@ def naive_predict(in_output_probs_filename, in_test_filename, out_prediction_fil
             tag_count[tag] += 1
 
     tweets = []
+    
+    # Read the test data and store all tokens it in a list
     with open(in_test_filename, 'r') as file:
         for line in file: 
             line = line.strip('\n')
@@ -67,20 +68,23 @@ def naive_predict(in_output_probs_filename, in_test_filename, out_prediction_fil
                 tweets.append(line)
 
     predicted_tags = []
+    
+    # Predict the tags for each token in the test data
     for token in tweets:
         if token in output_probs:
             predicted_tag = max(output_probs[token].keys(), key=output_probs[token].get)
         else:
-            # if token unseen, predict its tag as N 
-            predicted_tag = 'N' #default tag is Noun 
+            # If token is unseen, predict its tag as N (Noun)
+            predicted_tag = 'N'
         predicted_tags.append(predicted_tag)
     
+    # Write the predicted tags to the output file 
     with open(out_prediction_filename, 'w', encoding="utf-8") as outfile:
         for tag in predicted_tags:
             outfile.write(f'{tag}\n')
 
 # Question 2.1.c
-#Naive prediction accuracy:     1004/1378 = 0.7285921625544267
+# Naive prediction accuracy:    1004/1378 = 0.7285921625544267
 
 
 '''
@@ -139,7 +143,7 @@ def naive_predict2(in_output_probs_filename, in_train_filename, in_test_filename
 # Question 2.2.b
 # Naive prediction2 accuracy:    1016/1378 = 0.737300435413643
 
-"""Question 3"""
+'''Question 3'''
 # Question 3.a 
 
 def output_prob(training_file):
@@ -175,7 +179,7 @@ def output_prob(training_file):
     for token in pair_count:
         result[token] = {}
         for tag in pair_count[token]:
-            result[token][tag] = (pair_count[token][tag] + 0.01) / (tag_count[tag] + 0. * (len(pair_count) + 1))
+            result[token][tag] = (pair_count[token][tag] + 0.01) / (tag_count[tag] + 0.01 * (len(pair_count) + 1))
     
     with open('output_probs.txt', 'w') as outfile:
         for token in result:
@@ -255,9 +259,6 @@ def output_probs(in_train_filename, in_tags_filename):
             if len(tokens) >= 2:
                 token = tokens[0]
                 tag = tokens[1]
-                if token.startswith('@USER'):
-                    token = '@USER'
-                
                 if token not in emission_counts[tag]:
                     emission_counts[tag][token] = 0
                 emission_counts[tag][token] += 1
@@ -318,11 +319,6 @@ def viterbi_predict(in_tags_filename, in_trans_probs_filename, in_output_probs_f
         #initialise the viterbi table
         viterbi_table = [[]]
         backpointer = [[]]
-
-        for i in range(len(sentence)):
-            if sentence[i].startswith('@USER'):
-                sentence[i] = '@USER'
-
         #getting emission probabilities for this sentence
         emission_probs = {}
         for tag in hidden_states:
@@ -386,9 +382,14 @@ def viterbi_predict(in_tags_filename, in_trans_probs_filename, in_output_probs_f
         predictions.append('\n')
         
     with open(out_predictions_filename, 'w') as output:
-        output.writelines(predictions)
+       output.writelines(predictions)
 
-# Question 4
+# (c) Viterbi prediction accuracy:   1047/1378 = 0.7597968069666183
+
+'''
+Question 4: 
+
+'''
 
 def URL_identifier(token):
         if token.startswith('http'):
@@ -399,10 +400,11 @@ def URL_identifier(token):
     #3rd improvement: cluster @USER -> group the @USER into one token
 def USER_identifier(token):
     if token.startswith('@USER'):
+        token = '@USER'
         return '@USER'
     else:
         return False
-        
+    return token
     #4th improvement: cluster # -> group the # into one token
 def hashtag_identifier(token):
     if token[0] == "#":
