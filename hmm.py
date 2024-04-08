@@ -146,47 +146,6 @@ def naive_predict2(in_output_probs_filename, in_train_filename, in_test_filename
 '''Question 3'''
 # Question 3.a 
 
-def output_prob(training_file):
-   #create two dictionary to store the count of tags and the count of pair tags and words
-   # read the training_file and split the words and tags 
-    # for each word and tag pair, increment the count of the tag and the pair tag and word
-    # tag_count = {tag: count(tag)}
-    #pair_count = {token: {tag: count(token, tag)}}
-    tag_count = {}
-    pair_count = {}
-
-    with open(training_file, 'r') as file:
-        for line in file:
-            line_elements = line.strip()
-            if len(line_elements) >= 2:
-                token, tag = line_elements.split()
-                if tag in tag_count:
-                    tag_count[tag] += 1
-                else:
-                    tag_count[tag] = 1
-                if token in pair_count:
-                    if tag in pair_count[token]:
-                        pair_count[token][tag] += 1
-                    else:
-                        pair_count[token][tag] = 1
-                else:
-                    pair_count[token] = {tag: 1}
-    
-    #Dictionary of dictionary to store the output probabilties
-    #key: token. value: {tag: P(token|tag)=count(token, tag)/count(tag)}
-    #smoothing value: 0.01 
-    result = {}
-    for token in pair_count:
-        result[token] = {}
-        for tag in pair_count[token]:
-            result[token][tag] = (pair_count[token][tag] + 0.01) / (tag_count[tag] + 0.01 * (len(pair_count) + 1))
-    
-    with open('output_probs.txt', 'w') as outfile:
-        for token in result:
-            for tag in result[token]:
-                outfile.write(f'{token} {tag} {result[token][tag]}\n')
-output_prob('twitter_train.txt')
-
 #Question 3
 def trans_probs(in_train_filename, in_tags_filename):
     tag_tag_counts = {}
