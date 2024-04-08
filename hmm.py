@@ -3,11 +3,10 @@
 #Question 2.1a
 
 def MLE_predict(training_file):
-   #create two dictionary to store the count of tags and the count of pair tags and words
-   # read the training_file and split the words and tags 
+    #create two dictionary to store the count of tags and the count of pair tags and words
+    # read the training_file and split the words and tags 
     # for each word and tag pair, increment the count of the tag and the pair tag and word
-    # tag_count = {tag: count(tag)}
-    #pair_count = {token: {tag: count(token, tag)}}
+    
     tag_count = {}
     pair_count = {}
 
@@ -444,10 +443,13 @@ def output_probs2(in_train_filename, in_tags_filename):
     hidden_states = []
     with open(in_tags_filename, 'r') as tags:
         hidden_states = [line.strip() for line in tags]
-
+    
+    #get emission probabilities: run the whole train file to count and counts how many times a token appears in a tag
+    #then, for every tag, calculate the probability of the token appearing in that tag
     emission_counts = {}
+
     for state in hidden_states:
-            emission_counts[state] = {}
+        emission_counts[state] = {}
 
     with open(in_train_filename, 'r') as train:
         for line in train:
@@ -455,7 +457,6 @@ def output_probs2(in_train_filename, in_tags_filename):
             if len(tokens) >= 2:
                 token = tokens[0]
                 tag = tokens[1]
-
                 if USER_identifier(token):
                     token = '@USER'
                 if hashtag_identifier(token):
@@ -469,28 +470,22 @@ def output_probs2(in_train_filename, in_tags_filename):
                 if mostly_numeric(token):
                     token = mostly_numeric(token)
                 
-                for state in hidden_states:
-                    if tag == state:
-                        if token in emission_counts[state]:
-                            emission_counts[state][token] += 1
-                        else:
-                            emission_counts[state][token] = 1
-                    else: 
-                        if token not in emission_counts[state]:
-                            emission_counts[state][token] = 0
-
+                if token not in emission_counts[tag]:
+                    emission_counts[tag][token] = 0
+                emission_counts[tag][token] += 1
+    
     #change the counts to probabilities
     emission_probs = {}
     for state in hidden_states:
         emission_probs[state] = {}
         for token, count in emission_counts[state].items():
-            emission_probs[state][token] = (count + 0.01)/(sum(emission_counts[state].values()) + 0.01 * (len(emission_counts[state]) + 1))
+            emission_probs[state][token] = (count + 0.01)/(sum(emission_counts[state].values()) + 0.01 * (len(emission_counts[state]) + 1)) 
     
     with open("output_probs2.txt", "w") as output:
         for state, token_dict in emission_probs.items():
             for token, prob in token_dict.items():
                 output.write(f'{token} {state} {prob}\n')
-
+    
 output_probs2('twitter_train.txt', 'twitter_tags.txt')
 
 def non_word_shortener(token):
@@ -620,8 +615,6 @@ def viterbi_predict2(in_tags_filename, in_trans_probs_filename, in_output_probs_
 
 
 
-
-
 def evaluate(in_prediction_filename, in_answer_filename):
     """Do not change this method"""
     with open(in_prediction_filename) as fin:
@@ -685,7 +678,6 @@ def run():
     correct, total, acc = evaluate(viterbi_predictions_filename2, in_ans_filename)
     print(f'Viterbi2 prediction accuracy:  {correct}/{total} = {acc}')
     
-
 
 if __name__ == '__main__':
     run()
