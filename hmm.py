@@ -161,7 +161,7 @@ Question 3
 #(a)
 
 # define the function to calculate the transition probabilities, including the "start" and "stop" states
-def trans_probs(in_train_filename, in_tags_filename):
+def trans_probs(in_train_filename, in_tags_filename, out_trans_probs_filename):
     tag_tag_counts = {}
     tag_counts = {}
 
@@ -210,13 +210,13 @@ def trans_probs(in_train_filename, in_tags_filename):
 
 
     #change the counts to probabilities using the MLE formula with the smoothing value of 0.01
-    with open("trans_probs.txt", "w") as output:
+    with open(out_trans_probs_filename, "w") as output:
         for prev_tag, tag_dict in tag_tag_counts.items():
             for tag, count in tag_dict.items():
                 #smoothing
                 output.write(f'{prev_tag} {tag} {(count + 0.01)/(tag_counts[prev_tag] + 0.01 * (len(tag_counts)))}\n') #since there are no unseen tag, we excluded the "+1" in the denominator
                 
-trans_probs('twitter_train.txt', 'twitter_tags.txt')
+trans_probs('twitter_train.txt', 'twitter_tags.txt', 'trans_probs.txt')
 
 # define the function to calculate the emission probabilities       
 
@@ -385,6 +385,7 @@ Question 4
 - 6th improvement:  Identifies tokens that are mostly numeric. If more than half of the characters in the token are digits, returns "100", otherwise returns False.
 '''
 
+trans_probs('twitter_train.txt', 'twitter_tags.txt', 'trans_probs2.txt')
 
 def URL_identifier(token):
         if token.startswith('http'):
@@ -659,7 +660,7 @@ def run():
     correct, total, acc = evaluate(viterbi_predictions_filename, in_ans_filename)
     print(f'Viterbi prediction accuracy:   {correct}/{total} = {acc}')
 
-    trans_probs_filename2 =  f'{ddir}/trans_probs.txt'
+    trans_probs_filename2 =  f'{ddir}/trans_probs2.txt'
     output_probs_filename2 = f'{ddir}/output_probs2.txt'
 
     viterbi_predictions_filename2 = f'{ddir}/viterbi_predictions2.txt'
